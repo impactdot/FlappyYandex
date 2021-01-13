@@ -9,7 +9,7 @@ def draw_floor():
 
 
 def create_pipe(n):
-    if n % 10 == 3:
+    if n % 10 == 8:
         random_pipe_pos = random.randrange(400, 900)
         bottom_pipe = pipe_surface.get_rect(midtop=(700, random_pipe_pos))
         top_pipe = pipe_surface.get_rect(midbottom=(700, random_pipe_pos - 250))
