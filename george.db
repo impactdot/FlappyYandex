@@ -1,0 +1,16 @@
+--
+-- File generated with SQLiteStudio v3.2.1 on б№ џэт 13 17:31:38 2021
+--
+-- Text encoding used: System
+--
+PRAGMA foreign_keys = off;
+BEGIN TRANSACTION;
+
+-- Table: player
+CREATE TABLE player (id INTEGER PRIMARY KEY UNIQUE NOT NULL, username STRING NOT NULL, highscore INTEGER NOT NULL, rank INTEGER REFERENCES ranks (id));
+
+-- Table: ranks
+CREATE TABLE ranks (id INTEGER PRIMARY KEY UNIQUE NOT NULL, title STRING NOT NULL);
+
+COMMIT TRANSACTION;
+PRAGMA foreign_keys = on;
