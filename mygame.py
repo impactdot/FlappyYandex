@@ -92,6 +92,25 @@ def update_score(score, high_score):
     return high_score
 
 
+def bird_chose_display():
+    champ_text = "CHAMPION:" + winner_name
+    current_champion_text = norm_font.render(champ_text, True, pygame.Color('red'))
+    current_champion_text_rect = current_champion_text.get_rect(center=(230, 30))
+    menu_text = game_font_big.render("Choose bird", True, pygame.Color('white'))
+    menu_text_rect = menu_text.get_rect(center=(288, 100))
+    inst_text = game_font.render("Push the 'esc' to continue", True, pygame.Color('white'))
+    inst_text_rect = inst_text.get_rect(center=(288, 870))
+    # champion text
+    screen.blit(current_champion_text, current_champion_text_rect)
+    # слово "MENU"
+    screen.blit(menu_text, menu_text_rect)
+    # текст
+    screen.blit(inst_text, inst_text_rect)
+    screen.blit(big_bluebird, big_bluebird_rect)
+    screen.blit(big_yellowbird, big_yellowbird_rect)
+    screen.blit(big_blackbird, big_blackbird_rect)
+
+
 # database connection
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_path = os.path.join(BASE_DIR, "george.db")
@@ -104,44 +123,32 @@ pygame.init()
 screen = pygame.display.set_mode((576, 1000))
 pygame.display.set_caption('FlappyYandex')
 clock = pygame.time.Clock()
+norm_font = pygame.font.Font('data/Bullpen3D.ttf', 40)
+norm_font_small = pygame.font.Font('data/Bullpen3D.ttf', 20)
 game_font = pygame.font.Font('data/04B_19.ttf', 40)
 game_font_big = pygame.font.Font('data/04B_19.ttf', 60)
-game_font_small = pygame.font.Font('data/04B_19.ttf', 20)
 
 FPS = 60
-GRAVITY = 1 
+GRAVITY = 1
 bird_movement = 0
+# когда стукнулись, но пока не перешли в меню
+game_over = False
+# поле для имени
+input_box = pygame.Rect(200, 380, 190, 50)
+winner_name = ''
+# проверить, можно ли ввести имя?
+input_active = False
 # если мы уже играем, то есть прыгаем и скачем
 game_active = False
 # открыто ли меню с птичками, регистрацией и всякой такой фигней
-menu = True
-# функция для меню: показать текст и всякую такую фигню
-
-
-def menu_display():
-    menu_text = game_font_big.render("MENU", True, pygame.Color('white'))
-    menu_text_rect = menu_text.get_rect(center=(288, 100))
-    account_text = game_font_small.render("account:", True, pygame.Color('red'))
-    account_text_rect = menu_text.get_rect(center=(80, 30))
-    inst_text = game_font.render("Click the 'S' to continue", True, pygame.Color('white'))
-    inst_text_rect = inst_text.get_rect(center=(288, 170))
-    # слово "MENU"
-    screen.blit(menu_text, menu_text_rect)
-    # текст в углу красным "аккаунт"
-    screen.blit(account_text, account_text_rect)
-    # текст про кнопку "S"
-    screen.blit(inst_text, inst_text_rect)
-    # прнитим рисунок "инструкция"
-    screen.blit(scroll_surface, (520, 10))
-
+bird_chose = False
 
 score = 0
 high_score = 0
 count = 0
+letter_counter = 0
 
-yandex_logo = pygame.image.load('data/ylogo.png').convert()
-colorkey = yandex_logo.get_at((0, 0))
-yandex_logo.set_colorkey(colorkey)
+yandex_logo = pygame.image.load('data/ylogo.png').convert_alpha()
 yandex_logo_rect = yandex_logo.get_rect(center=(288, 180))
 
 scroll_surface = pygame.image.load('data/scroll.png').convert_alpha()
@@ -149,6 +156,8 @@ scroll_surface = pygame.transform.scale(scroll_surface, (40, 40))
 
 bg_surface = pygame.image.load('data/background-day.png').convert()
 bg_surface = pygame.transform.scale2x(bg_surface)
+bg_surface_night = pygame.image.load('data/background-night.png').convert()
+bg_surface_night = pygame.transform.scale2x(bg_surface_night)
 
 floor_surface = pygame.image.load('data/base.png').convert()
 floor_surface = pygame.transform.scale2x(floor_surface)
@@ -162,6 +171,25 @@ bird_frames = [bluebird_downflap, bluebird_midflap, bluebird_upflap]
 bird_index = 0
 bird_surface = bird_frames[bird_index]
 bird_rect = bird_surface.get_rect(center=(100, 512))
+
+bird_icon = pygame.image.load('data/bluebird-midflap.png').convert_alpha()
+bird_icon_rect = bird_icon.get_rect(topleft=(10, 10))
+
+yellowbird_downflap = pygame.transform.scale2x(pygame.image.load('data/yellowbird-downflap.png').convert_alpha())
+yellowbird_midflap = pygame.transform.scale2x(pygame.image.load('data/yellowbird-midflap.png').convert_alpha())
+yellowbird_upflap = pygame.transform.scale2x(pygame.image.load('data/yellowbird-upflap.png').convert_alpha())
+
+blackbird_downflap = pygame.transform.scale2x(pygame.image.load('data/blackbird-downflap.png').convert_alpha())
+blackbird_midflap = pygame.transform.scale2x(pygame.image.load('data/blackbird-midflap.png').convert_alpha())
+blackbird_upflap = pygame.transform.scale2x(pygame.image.load('data/blackbird-upflap.png').convert_alpha())
+
+big_bluebird = pygame.transform.scale2x(bluebird_midflap)
+big_bluebird_rect = big_bluebird.get_rect(center=(screen.get_width() // 2, 250))
+big_yellowbird = pygame.transform.scale2x(yellowbird_midflap)
+big_yellowbird_rect = big_yellowbird.get_rect(center=(screen.get_width() // 2, 450))
+big_blackbird = pygame.transform.scale2x(blackbird_midflap)
+big_blackbird_rect = big_blackbird.get_rect(center=(screen.get_width() // 2, 650))
+
 
 BIRDFLAP = pygame.USEREVENT + 1
 pygame.time.set_timer(BIRDFLAP, 200)
@@ -193,19 +221,66 @@ if __name__ == '__main__':
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_f and game_active:
                     peacock_sound.play()
+
                 if event.key == pygame.K_SPACE and game_active:
                     bird_movement = 0
                     bird_movement -= 9
                     flap_sound.play()
-                if event.key == pygame.K_s and menu:
-                    menu = False
-                    game_active = True
+
+                if event.key == pygame.K_ESCAPE and bird_chose:
+                    bird_chose = False
+                    game_active = False
+
                 if event.key == pygame.K_SPACE and not game_active:
                     game_active = True
                     pipe_list.clear()
                     bird_rect.center = (100, 512)
                     bird_movement = 0
                     score = 0
+            # not bird_chose_display - т.к. это мы не делаем в меню
+            if event.type == pygame.KEYDOWN and game_over:
+                if input_active:
+                    if event.key == pygame.K_RETURN:
+                        letter_counter = 0
+                        game_over = False
+                        # обновил вверху account
+                    elif event.key == pygame.K_BACKSPACE:
+                        winner_name = winner_name[:-1]
+                        if letter_counter >= 1:
+                            letter_counter -= 1
+                        else:
+                            letter_counter = 0
+                    else:
+                        if letter_counter <= 6:
+                            winner_name += event.unicode
+                            letter_counter += 1
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1 and not game_over:
+                    if game_active:
+                        bird_movement = 0
+                        bird_movement -= 9
+                        flap_sound.play()
+                    else:
+                        if bird_chose:
+                            pass
+                        else:
+                            if event.pos[0] <= 44 and event.pos[1] <= 34:
+                                bird_chose = True
+                            else:
+                                game_active = True
+                                pipe_list.clear()
+                                bird_rect.center = (100, 512)
+                                bird_movement = 0
+                                score = 0
+                                score_sound_countdown = 140
+                elif event.button == 1 and game_over:
+                    # If the user clicked on the input_box rect.
+                    if input_box.collidepoint(event.pos):
+                        # Toggle the active variable.
+                        input_active = not input_active
+                    else:
+                        input_active = False
 
             if event.type == SPAWN_PIPE:
                 pipe_list.append(create_pipe(score))
@@ -217,9 +292,14 @@ if __name__ == '__main__':
                     bird_index = 0
 
                 bird_surface, bird_rect = bird_animation()
-        screen.blit(bg_surface, (0, 0))
-        if menu:
-            menu_display()
+
+        if score % 60 < 30:
+            screen.blit(bg_surface, (0, 0))
+        else:
+            screen.blit(bg_surface_night, (0, 0))
+
+        if bird_chose:
+            bird_chose_display()
         else:
             if game_active:
                 if count == 0:
@@ -228,11 +308,11 @@ if __name__ == '__main__':
                 bird_rect.centery += bird_movement
                 screen.blit(rotated_bird, bird_rect)
                 game_active = check_collision(list(map(lambda x: x[0:2], pipe_list)))
-
+                if not game_active:
+                    game_over = True
                 pipe_list = move_pipes(pipe_list)
                 pipe_list = remove_pipes(pipe_list)
                 draw_pipes(pipe_list)
-
                 score_display('main_game')
                 score_sound_countdown -= 1
                 if score_sound_countdown <= 0:
@@ -240,10 +320,28 @@ if __name__ == '__main__':
                     if score % 5 == 0:
                         score_sound.play()
                     score_sound_countdown = 70
+            elif not game_active and game_over:
+                if score > high_score:
+                    screen.blit(bg_surface, (0, 0))
+                    winner_text1 = norm_font.render("ENTER YOUR NAME,", True, pygame.Color('blue'))
+                    winner_text1_rect = winner_text1.get_rect(center=(288, 300))
+                    screen.blit(winner_text1, winner_text1_rect)
+                    winner_text2 = norm_font.render("NEW CHAMPION", True, pygame.Color('blue'))
+                    winner_text2_rect = winner_text2.get_rect(center=(288, 350))
+                    screen.blit(winner_text2, winner_text2_rect)
+                    txt_surface = norm_font.render(winner_name, True, pygame.Color('blue'))
+                    screen.blit(txt_surface, (input_box.x, input_box.y))
+                    # Blit the input_box rect.
+                    pygame.draw.rect(screen, pygame.Color('green'), input_box, 2)
+                else:
+                    game_over = False
             else:
                 score_sound_countdown = 140
+                # запуск меню
+                screen.blit(bird_icon, bird_icon_rect)
                 screen.blit(game_over_surface, game_over_rect)
                 screen.blit(yandex_logo, yandex_logo_rect)
+                # eto figna
                 high_score = update_score(score, high_score)
                 score_display('game_over')
 
