@@ -80,7 +80,7 @@ def score_display(game_state):
         score_surface = game_font.render(f'Score: {int(score)}', True, (255, 255, 255))
         score_rect = score_surface.get_rect(center=(288, 100))
         screen.blit(score_surface, score_rect)
-        if winner_name == '':
+        if winner_name == ' ':
             high_score_surface = game_font.render(f'High score: {int(high_score)}',
                                                   True, (255, 255, 255))
         else:
@@ -240,7 +240,7 @@ if __name__ == '__main__':
                     bird_chose = False
                     game_active = False
 
-                if event.key == pygame.K_SPACE and not game_active:
+                if event.key == pygame.K_SPACE and not game_active and not game_over:
                     game_active = True
                     pipe_list.clear()
                     bird_rect.center = (100, 512)
