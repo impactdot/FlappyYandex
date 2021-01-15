@@ -100,7 +100,7 @@ def bird_chose_display():
     screen.blit(menu_text, menu_text_rect)
     # текст про кнопку "S"
     screen.blit(inst_text, inst_text_rect)
-    screen.blit(big_bluebird, )
+    screen.blit(big_bluebird, big_bluebird_rect)
     screen.blit(big_yellowbird, big_yellowbird_rect)
     screen.blit(big_blackbird, big_blackbird_rect)
 
