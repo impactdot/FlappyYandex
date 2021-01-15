@@ -80,8 +80,12 @@ def score_display(game_state):
         score_surface = game_font.render(f'Score: {int(score)}', True, (255, 255, 255))
         score_rect = score_surface.get_rect(center=(288, 100))
         screen.blit(score_surface, score_rect)
-
-        high_score_surface = game_font.render(f'High score: {int(high_score)}', True, (255, 255, 255))
+        if winner_name == ' ':
+            high_score_surface = game_font.render(f'High score: {int(high_score)}',
+                                                  True, (255, 255, 255))
+        else:
+            high_score_surface = game_font.render(f'High score: {int(high_score)}' + ' by ' + winner_name,
+                                                  True, (255, 255, 255))
         high_score_rect = high_score_surface.get_rect(center=(288, 850))
         screen.blit(high_score_surface, high_score_rect)
 
@@ -93,15 +97,12 @@ def update_score(score, high_score):
 
 
 def bird_chose_display():
-    champ_text = "CHAMPION:" + winner_name
-    current_champion_text = norm_font.render(champ_text, True, pygame.Color('red'))
-    current_champion_text_rect = current_champion_text.get_rect(center=(230, 30))
+
     menu_text = game_font_big.render("Choose bird", True, pygame.Color('white'))
     menu_text_rect = menu_text.get_rect(center=(288, 100))
     inst_text = game_font.render("Push the 'esc' to continue", True, pygame.Color('white'))
     inst_text_rect = inst_text.get_rect(center=(288, 870))
-    # champion text
-    screen.blit(current_champion_text, current_champion_text_rect)
+
     # слово "MENU"
     screen.blit(menu_text, menu_text_rect)
     # текст
@@ -135,7 +136,7 @@ bird_movement = 0
 game_over = False
 # поле для имени
 input_box = pygame.Rect(200, 380, 190, 50)
-winner_name = ''
+winner_name = cur.execute("""SELECT name from records""").fetchone()[0]
 # проверить, можно ли ввести имя?
 input_active = False
 # если мы уже играем, то есть прыгаем и скачем
@@ -144,7 +145,7 @@ game_active = False
 bird_chose = False
 
 score = 0
-high_score = 0
+high_score = cur.execute("""SELECT record from records""").fetchone()[0]
 count = 0
 letter_counter = 0
 
@@ -167,13 +168,6 @@ floor_x_pos = 0
 bluebird_downflap = pygame.transform.scale2x(pygame.image.load('data/bluebird-downflap.png').convert_alpha())
 bluebird_midflap = pygame.transform.scale2x(pygame.image.load('data/bluebird-midflap.png').convert_alpha())
 bluebird_upflap = pygame.transform.scale2x(pygame.image.load('data/bluebird-upflap.png').convert_alpha())
-bird_frames = [bluebird_downflap, bluebird_midflap, bluebird_upflap]
-bird_index = 0
-bird_surface = bird_frames[bird_index]
-bird_rect = bird_surface.get_rect(center=(100, 512))
-
-bird_icon = pygame.image.load('data/bluebird-midflap.png').convert_alpha()
-bird_icon_rect = bird_icon.get_rect(topleft=(10, 10))
 
 yellowbird_downflap = pygame.transform.scale2x(pygame.image.load('data/yellowbird-downflap.png').convert_alpha())
 yellowbird_midflap = pygame.transform.scale2x(pygame.image.load('data/yellowbird-midflap.png').convert_alpha())
@@ -189,6 +183,21 @@ big_yellowbird = pygame.transform.scale2x(yellowbird_midflap)
 big_yellowbird_rect = big_yellowbird.get_rect(center=(screen.get_width() // 2, 450))
 big_blackbird = pygame.transform.scale2x(blackbird_midflap)
 big_blackbird_rect = big_blackbird.get_rect(center=(screen.get_width() // 2, 650))
+
+birds = [[bluebird_downflap, bluebird_midflap, bluebird_upflap],
+         [yellowbird_downflap, yellowbird_midflap, yellowbird_upflap],
+         [blackbird_downflap, blackbird_midflap, blackbird_upflap]]
+
+i = cur.execute("""SELECT bird from bird""").fetchone()[0]
+print(i)
+
+bird_frames = [birds[i][0], birds[i][1], birds[i][2]]
+bird_index = 0
+bird_surface = bird_frames[bird_index]
+bird_rect = bird_surface.get_rect(center=(100, 512))
+
+bird_icon = birds[i][1]
+bird_icon_rect = bird_icon.get_rect(topleft=(10, 10))
 
 
 BIRDFLAP = pygame.USEREVENT + 1
@@ -231,17 +240,24 @@ if __name__ == '__main__':
                     bird_chose = False
                     game_active = False
 
-                if event.key == pygame.K_SPACE and not game_active:
+                if event.key == pygame.K_SPACE and not game_active and not game_over:
                     game_active = True
                     pipe_list.clear()
                     bird_rect.center = (100, 512)
                     bird_movement = 0
                     score = 0
+                    score_sound_countdown = 140
             # not bird_chose_display - т.к. это мы не делаем в меню
             if event.type == pygame.KEYDOWN and game_over:
                 if input_active:
                     if event.key == pygame.K_RETURN:
                         letter_counter = 0
+                        high_score = update_score(score, high_score)
+                        cur.execute("""UPDATE records
+                                        SET name = ?""", (winner_name,))
+                        cur.execute("""UPDATE records
+                                        SET record = ?""", (high_score,))
+                        con.commit()
                         game_over = False
                         # обновил вверху account
                     elif event.key == pygame.K_BACKSPACE:
@@ -263,9 +279,29 @@ if __name__ == '__main__':
                         flap_sound.play()
                     else:
                         if bird_chose:
-                            pass
+                            if big_bluebird_rect.collidepoint(event.pos):
+                                bird_frames = [bluebird_downflap, bluebird_midflap, bluebird_upflap]
+                                bird_icon = bluebird_midflap
+                                cur.execute("""UPDATE bird
+                                                SET bird = 0""")
+                                con.commit()
+                                bird_chose = False
+                            elif big_yellowbird_rect.collidepoint(event.pos):
+                                bird_frames = [yellowbird_downflap, yellowbird_midflap, yellowbird_upflap]
+                                bird_icon = yellowbird_midflap
+                                cur.execute("""UPDATE bird
+                                                SET bird = 1""")
+                                con.commit()
+                                bird_chose = False
+                            elif big_blackbird_rect.collidepoint(event.pos):
+                                bird_frames = [blackbird_downflap, blackbird_midflap, blackbird_upflap]
+                                bird_icon = blackbird_midflap
+                                cur.execute("""UPDATE bird 
+                                                SET bird = 2""")
+                                con.commit()
+                                bird_chose = False
                         else:
-                            if event.pos[0] <= 44 and event.pos[1] <= 34:
+                            if event.pos[0] <= 78 and event.pos[1] <= 58:
                                 bird_chose = True
                             else:
                                 game_active = True
@@ -278,7 +314,7 @@ if __name__ == '__main__':
                     # If the user clicked on the input_box rect.
                     if input_box.collidepoint(event.pos):
                         # Toggle the active variable.
-                        input_active = not input_active
+                        input_active = True
                     else:
                         input_active = False
 
@@ -336,13 +372,11 @@ if __name__ == '__main__':
                 else:
                     game_over = False
             else:
-                score_sound_countdown = 140
                 # запуск меню
                 screen.blit(bird_icon, bird_icon_rect)
                 screen.blit(game_over_surface, game_over_rect)
                 screen.blit(yandex_logo, yandex_logo_rect)
                 # eto figna
-                high_score = update_score(score, high_score)
                 score_display('game_over')
 
         floor_x_pos -= 1
